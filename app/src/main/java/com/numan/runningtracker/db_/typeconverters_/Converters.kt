@@ -25,4 +25,10 @@ class Converters {
         return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
     }
 
+    /*
+    * Things to remember above is there's an another attribute
+    * named: @TypeConverters  but we don't need this we need below one
+    * @TypeConverter
+    * if we write s at the end this will cause error then
+    * */
 }
