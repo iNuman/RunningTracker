@@ -30,5 +30,6 @@ class Converters {
     * named: @TypeConverters  but we don't need this we need below one
     * @TypeConverter
     * if we write s at the end this will cause error then
+    *
     * */
 }
