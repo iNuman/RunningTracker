@@ -1,8 +1,8 @@
-package com.numan.runningtracker
+package com.numan.runningtracker.ui_.activities_
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import com.numan.runningtracker.R
 import com.numan.runningtracker.db_.dao_.RunDao
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
