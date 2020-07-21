@@ -9,12 +9,14 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.numan.runningtracker.R
 import com.numan.runningtracker.other_.Constants.REQUEST_CODE_LOCATION_PERMISSION
+import com.numan.runningtracker.other_.TrackingUtility.hasLocationPermissions
 import com.numan.runningtracker.ui_.viewmodels_.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_run.*
 import pub.devrel.easypermissions.AppSettingsDialog
 import pub.devrel.easypermissions.EasyPermissions
 import pub.devrel.easypermissions.EasyPermissions.hasPermissions
+import com.numan.runningtracker.other_.TrackingUtility as TrackingUtility
 
 /*
 * Whenever we want to inject stuff in Android Components
@@ -38,7 +40,7 @@ class RunFragment : Fragment(R.layout.fragment_run), EasyPermissions.PermissionC
     }
 
     private fun requestPermission() {
-        if (hasPermissions(requireContext())) {
+        if (hasLocationPermissions(requireContext())) {
             return
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
