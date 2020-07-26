@@ -84,11 +84,13 @@ class TrackingServices : LifecycleService() {
                         isFirstRun = false
                     } else {
                         log("Resuming Service")
+                        startForegroundService()
                     }
 
                 }
                 Constants.ACTION_PAUSE_SERVICE -> {
                     log("Paused Service")
+                    pauseService()
                 }
                 Constants.ACTION_STOP_SERVICE -> {
                     log("Stopped Service")
@@ -96,6 +98,14 @@ class TrackingServices : LifecycleService() {
             }
         }
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    /*
+    * To pause the Service
+    * */
+    private fun pauseService() {
+
+        isTracking.postValue(false)
     }
 
     /*
