@@ -3,6 +3,8 @@ package com.numan.runningtracker.services_
 import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
+import android.app.PendingIntent.getService
 import android.content.Context
 import android.content.Intent
 import android.location.Location
@@ -19,23 +21,45 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.model.LatLng
 import com.numan.runningtracker.R
 import com.numan.runningtracker.extensions_.log
+import com.numan.runningtracker.other_.Constants.ACTION_PAUSE_SERVICE
+import com.numan.runningtracker.other_.Constants.ACTION_START_OR_RESUME_SERVICE
+import com.numan.runningtracker.other_.Constants.NOTIFICATION_ID
 import com.numan.runningtracker.other_.Constants.TIMER_UPDATE_INTERVAL
 import com.numan.runningtracker.other_.TrackingUtility
-import com.numan.runningtracker.ui_.activities_.MainActivity
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import com.numan.runningtracker.other_.Constants as Constants
 
 typealias  Polyline = MutableList<LatLng>
 typealias Polylines = MutableList<Polyline>
 
+@AndroidEntryPoint
 class TrackingServices : LifecycleService() {
 
     var isFirstRun = true
+
+    @Inject
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private val timeRunInSeconds = MutableLiveData<Long>()
+
+    /*
+    * To update notification we'll pass new notification with the same id
+    * that's why I created baseNotification which will hold
+    * all the configuration of notifications
+    * */
+    @Inject
+    lateinit var baseNotificationBuilder: NotificationCompat.Builder
+
+    /* This will have slightly different notification then our base notification builder
+    * because we're going to change the text of that notification builder
+    * for each second and we also going to add those two Action buttons
+    * to start or resume the service
+    * */
+    lateinit var currentNotificationBuilder: NotificationCompat.Builder
 
     companion object {
         val timeRunInMillis = MutableLiveData<Long>()
@@ -61,6 +85,15 @@ class TrackingServices : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        /* Initially we'll pass base notificationBuilder
+        * to currentNotification builder
+        * because we just start with base notification
+        * and when some time passes we're going to change the text of
+        * our current notification builder and show that notification instead
+        *
+        * For this I'll be creating function named: updateNotificationTrackingState(isTracking: Boolean)
+        * */
+        currentNotificationBuilder = baseNotificationBuilder
         postInitialValues()
         fusedLocationProviderClient = FusedLocationProviderClient(this@TrackingServices)
         /*
@@ -74,6 +107,8 @@ class TrackingServices : LifecycleService() {
             * to pass the isTracking=true in our is Tracking Service
             * and to do this we'll go into startForeground Service method and will post isTracking to true
             * */
+
+            updateNotificationTrackingState(it)
         })
     }
 
@@ -160,6 +195,50 @@ class TrackingServices : LifecycleService() {
         }
     }
 
+    private fun updateNotificationTrackingState(isTracking: Boolean) {
+        /*  In here I am going to update notification text and show
+        * it in the end
+        * */
+        val notificationActionText = if (isTracking) "Pause" else "Resume"
+        val pendingInject = if (isTracking) {
+            val pauseIntent = Intent(this@TrackingServices, TrackingServices::class.java).apply {
+                action = ACTION_PAUSE_SERVICE
+            }
+            PendingIntent.getService(this@TrackingServices, 1, pauseIntent, FLAG_UPDATE_CURRENT)
+        } else {
+            val resumeIntent = Intent(this@TrackingServices, TrackingServices::class.java).apply {
+                action = ACTION_START_OR_RESUME_SERVICE
+            }
+            getService(this@TrackingServices, 2, resumeIntent, FLAG_UPDATE_CURRENT)
+        }
+
+        /* Now we'll be getting reference to notification manager
+        * so we can display new notification we updated one
+        * */
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        /* Before updating the notification we'll have to remove the
+        *  previous actions and then we'll be showing updated notification
+        *  ArrayList<NotificationCompat.Action>() we cleared the previous actions and set this empty ArrayList
+        *  and at the same time created a new notification
+        * */
+        currentNotificationBuilder.javaClass.getDeclaredField("mActions").apply {
+            isAccessible = true
+            set(currentNotificationBuilder, ArrayList<NotificationCompat.Action>())
+        }
+
+        currentNotificationBuilder = baseNotificationBuilder
+            .addAction(R.drawable.ic_pause_black_24dp, notificationActionText, pendingInject)
+        notificationManager.notify(NOTIFICATION_ID, currentNotificationBuilder.build())
+
+        /*
+        * And at last we'll set time to our notification which has been done inside
+        * startForegroundService
+        * */
+    }
+
+
     /*
     * To pause the Service
     * */
@@ -183,7 +262,7 @@ class TrackingServices : LifecycleService() {
         *   app:destination="@id/trackingFragment"
         *   app:launchSingleTop="true"/>
     * app:launchSingleTop="true" this means it'll always launch single instance not multiple of fragment
-    * */
+    *
 
     private fun getMainActivityPendingIntent() = PendingIntent.getActivity(
         this@TrackingServices,
@@ -193,6 +272,10 @@ class TrackingServices : LifecycleService() {
         },
         PendingIntent.FLAG_UPDATE_CURRENT
     )
+    *
+    * I Injected this part and don't need it anymore
+*/
+
 
     /*
     * Function to update our location tracking
@@ -259,16 +342,15 @@ class TrackingServices : LifecycleService() {
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val notificationBuilder =
-            NotificationCompat.Builder(this@TrackingServices, Constants.NOTIFICATION_CHANNEL_ID)
-                .setAutoCancel(false)
-                .setOngoing(true)
-                .setSmallIcon(R.drawable.ic_directions_run_black_24dp)
-                .setContentText(getString(R.string.app_name))
-                .setContentText("00:00:00")
-                .setContentIntent(getMainActivityPendingIntent())
 
-        startForeground(Constants.NOTIFICATION_ID, notificationBuilder.build())
+        startForeground(NOTIFICATION_ID, baseNotificationBuilder.build())
+
+        /* This will observe data when whole second passes not 50ms passes */
+        timeRunInSeconds.observe(this, Observer {
+            val notification = currentNotificationBuilder
+                .setContentText(TrackingUtility.getFormattedStopWatchTime(it * 1000L))
+            notificationManager.notify(NOTIFICATION_ID, notification.build())
+        })
     }
 }
 
