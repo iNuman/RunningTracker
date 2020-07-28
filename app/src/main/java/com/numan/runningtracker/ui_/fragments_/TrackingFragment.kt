@@ -15,6 +15,7 @@ import com.numan.runningtracker.other_.Constants.ACTION_START_OR_RESUME_SERVICE
 import com.numan.runningtracker.other_.Constants.MAP_ZOOM
 import com.numan.runningtracker.other_.Constants.POLYLINE_COLOR
 import com.numan.runningtracker.other_.Constants.POLYLINE_WIDTH
+import com.numan.runningtracker.other_.TrackingUtility
 import com.numan.runningtracker.services_.Polyline
 import com.numan.runningtracker.services_.TrackingServices
 import com.numan.runningtracker.ui_.viewmodels_.MainViewModel
@@ -39,8 +40,9 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
     private var isTracking = false
     private var pathPoints = mutableListOf<Polyline>()
 
-
     var map: GoogleMap? = null
+
+    private var currentTimeInMillis = 0L /* how long the run was*/
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         /*
@@ -74,6 +76,14 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
             addLatestPolyline()
             moveCameraToUser()
         })
+        /* New observer From Service*/
+        TrackingServices.timeRunInMillis.observe(viewLifecycleOwner, Observer {
+            currentTimeInMillis = it
+            val formattedTime = TrackingUtility.getFormattedStopWatchTime(currentTimeInMillis, true)
+            tvTimer.text = formattedTime
+        })
+
+
     }
 
     private fun toggleRun() {

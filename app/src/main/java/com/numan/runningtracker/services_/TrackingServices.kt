@@ -19,8 +19,13 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.model.LatLng
 import com.numan.runningtracker.R
 import com.numan.runningtracker.extensions_.log
+import com.numan.runningtracker.other_.Constants.TIMER_UPDATE_INTERVAL
 import com.numan.runningtracker.other_.TrackingUtility
 import com.numan.runningtracker.ui_.activities_.MainActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.numan.runningtracker.other_.Constants as Constants
 
 typealias  Polyline = MutableList<LatLng>
@@ -30,8 +35,10 @@ class TrackingServices : LifecycleService() {
 
     var isFirstRun = true
     lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    private val timeRunInSeconds = MutableLiveData<Long>()
 
     companion object {
+        val timeRunInMillis = MutableLiveData<Long>()
         val isTracking = MutableLiveData<Boolean>()
 
         /*we'll have list of coordinates*/
@@ -48,6 +55,8 @@ class TrackingServices : LifecycleService() {
     private fun postInitialValues() {
         isTracking.postValue(false)
         pathPoints.postValue(mutableListOf())
+        timeRunInSeconds.postValue(0L)
+        timeRunInMillis.postValue(0L)
     }
 
     override fun onCreate() {
@@ -84,7 +93,7 @@ class TrackingServices : LifecycleService() {
                         isFirstRun = false
                     } else {
                         log("Resuming Service")
-                        startForegroundService()
+                        startTimer()
                     }
 
                 }
@@ -101,11 +110,63 @@ class TrackingServices : LifecycleService() {
     }
 
     /*
+    * Function to start timer
+    * */
+    private var isTimerEnabled = false
+    private var lapTime = 0L /* the time from beginning when the timer started So when we we start run
+    * we're going to add time to this varibale
+    * But when we stop timer and resume again this will start from 0
+    */
+    private var timeRun = 0L
+    private var timeStarted = 0L /* timestamp for when we started the time*/
+    private var lastSecondTimestamp = 0L
+
+    private fun startTimer() {
+/*
+* I cutted the addEmptyPolyline form startForeGroundService and pasted it here
+* */
+        addEmptyPolyline()
+        isTracking.postValue(true)
+        timeStarted = System.currentTimeMillis()
+        isTimerEnabled = true
+        /*
+        * Now how do we want to track our current time
+        * Or Stop the current time
+        * So I want to implement this with coroutines
+        * because I don't want to call observers all the time
+        * it'll be bad performance otherwise
+        *
+        * What I actually want is to Track current time
+        * in Coroutine and after that delay coroutine
+        * for few milliSeconds
+        * */
+
+        CoroutineScope(Dispatchers.Main).launch {
+            while (isTracking.value!!) {
+                /* time difference between now and time started */
+                lapTime = System.currentTimeMillis() - timeStarted
+                /* Post the new lapTime ,    this is total time which we want to observe*/
+                timeRunInMillis.postValue(timeRun + lapTime)
+                if (timeRunInMillis.value!! >= lastSecondTimestamp + 1000L) {
+                    timeRunInSeconds.postValue(timeRunInSeconds.value!! + 1)
+                    lastSecondTimestamp += 1000L
+                }
+                /* Now I will delay the coroutine for some milliSeconds which
+                * is not noticeable for user but for phones
+                *  */
+                delay(TIMER_UPDATE_INTERVAL)
+            }
+            timeRun += lapTime
+        }
+    }
+
+    /*
     * To pause the Service
     * */
     private fun pauseService() {
 
         isTracking.postValue(false)
+        isTimerEnabled = false
     }
 
     /*
@@ -193,7 +254,7 @@ class TrackingServices : LifecycleService() {
 
     private fun startForegroundService() {
 
-        addEmptyPolyline()
+        startTimer()
         isTracking.postValue(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

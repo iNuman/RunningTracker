@@ -13,6 +13,7 @@ object Constants {
 
     const val ACTION_SHOW_TRACKING_FRAGMENT = "ACTION_SHOW_TRACKING_FRAGMENT"
 
+   const val TIMER_UPDATE_INTERVAL = 50L
     /*
     * These aren't accurate values
     * average interval can be of 3 sec or may be 6 secs
