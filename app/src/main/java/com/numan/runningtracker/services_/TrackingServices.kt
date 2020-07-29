@@ -348,7 +348,6 @@ class TrackingServices : LifecycleService() {
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-
         startForeground(NOTIFICATION_ID, baseNotificationBuilder.build())
 
         /* This will observe data when whole second passes not 50ms passes */

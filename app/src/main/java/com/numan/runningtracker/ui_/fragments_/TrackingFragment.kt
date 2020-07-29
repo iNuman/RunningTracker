@@ -13,6 +13,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.numan.runningtracker.R
+import com.numan.runningtracker.extensions_.toastFrag
 import com.numan.runningtracker.other_.Constants.ACTION_PAUSE_SERVICE
 import com.numan.runningtracker.other_.Constants.ACTION_START_OR_RESUME_SERVICE
 import com.numan.runningtracker.other_.Constants.ACTION_STOP_SERVICE
@@ -131,12 +132,14 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return super.onOptionsItemSelected(item)
+
         when (item.itemId) {
             R.id.miCancelTracking -> {
+
                 showCancelTrackingDialog()
             }
         }
+        return super.onOptionsItemSelected(item)
     }
     private fun showCancelTrackingDialog() {
         val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.AlertDialogTheme)
