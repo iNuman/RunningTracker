@@ -10,9 +10,12 @@ import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.snackbar.Snackbar
 import com.numan.runningtracker.R
+import com.numan.runningtracker.db_.Run
 import com.numan.runningtracker.extensions_.toastFrag
 import com.numan.runningtracker.other_.Constants.ACTION_PAUSE_SERVICE
 import com.numan.runningtracker.other_.Constants.ACTION_START_OR_RESUME_SERVICE
@@ -26,6 +29,8 @@ import com.numan.runningtracker.services_.TrackingServices
 import com.numan.runningtracker.ui_.viewmodels_.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_tracking.*
+import java.util.*
+import kotlin.math.round
 import com.numan.runningtracker.other_.Constants as Constants
 
 /*
@@ -48,6 +53,8 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
     private var map: GoogleMap? = null
 
     private var menu: Menu? = null
+
+    private var weight = 80f
 
     private var currentTimeInMillis = 0L /* how long the run was*/
 
@@ -78,6 +85,11 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
         btnToggleRun.setOnClickListener {
             toggleRun()
             // sendCommandToService(Constants.ACTION_START_OR_RESUME_SERVICE)
+        }
+
+        btnFinishRun.setOnClickListener {
+            zoomToSeeWholeTrack()
+            endRunAndSaveToDb()
         }
     }
 
@@ -141,25 +153,28 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
         }
         return super.onOptionsItemSelected(item)
     }
+
     private fun showCancelTrackingDialog() {
         val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.AlertDialogTheme)
             .setTitle("Cancel The Run")
             .setMessage("Are you sure to cancel the current run and delete all its' data?")
             .setIcon(R.drawable.ic_delete)
-            .setPositiveButton("Yes"){ _ , _ ->
+            .setPositiveButton("Yes") { _, _ ->
                 stopRun()
 
             }
-            .setNegativeButton("No"){ dialogInterface, _ ->
+            .setNegativeButton("No") { dialogInterface, _ ->
                 dialogInterface.cancel()
             }
             .create()
         dialog.show()
     }
+
     private fun stopRun() {
         sendCommandToService(ACTION_STOP_SERVICE)
         findNavController().navigate(R.id.action_trackingFragment_to_runFragment)
     }
+
     private fun updateTracking(isTracking: Boolean) {
 
         this.isTracking = isTracking
@@ -198,6 +213,61 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
             * */
         }
 
+    }
+
+    private fun zoomToSeeWholeTrack() {
+
+        val bounds = LatLngBounds.Builder()
+        for (polyline in pathPoints) {
+            for (pos in polyline) {
+                bounds.include(pos)
+
+            }
+        }
+
+        map?.moveCamera(
+            CameraUpdateFactory.newLatLngBounds(
+                bounds.build(),
+                mapView.width,
+                mapView.height,
+                (mapView.height * 0.05f).toInt()
+            )
+        )
+    }
+
+    private fun endRunAndSaveToDb() {
+        map?.snapshot { bmp ->
+            /*
+            * And we have to calculate total distance in our run first
+            * for this we'll be looping through our polyline list
+            * And for each single polyline we need to calculate the distance
+            * And to do this I'll be creating utility function inside
+            * Tracking Utility class
+            * */
+            var distanceInMeters = 0
+            for (polyline in pathPoints) {
+                distanceInMeters += TrackingUtility.calculatePolylineLength(polyline).toInt()
+            }
+            val avgSpeed =
+                round(distanceInMeters / 1000f) / (currentTimeInMillis / 1000f / 60 / 60) / 10f
+            val dateTimeStamp = Calendar.getInstance().timeInMillis
+            val caloriesBurned = ((distanceInMeters / 1000f) * weight).toInt()
+            val run = Run(
+                bmp,
+                dateTimeStamp,
+                avgSpeed,
+                distanceInMeters,
+                currentTimeInMillis,
+                caloriesBurned
+            )
+            viewModel.insertRun(run)
+            Snackbar.make(
+                requireActivity().findViewById(R.id.rootView),
+                "Run Saved Successfully",
+                Snackbar.LENGTH_LONG
+            ).show()
+            stopRun()
+        }
     }
 
     private fun addAllPolylines() {

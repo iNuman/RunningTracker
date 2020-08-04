@@ -2,7 +2,10 @@ package com.numan.runningtracker.ui_.viewmodels_
 
 import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.numan.runningtracker.db_.Run
 import com.numan.runningtracker.db_.repository_.MainRepository
+import kotlinx.coroutines.launch
 
 /*
 * This injection will work even without creating implementation behind the scenes
@@ -13,4 +16,8 @@ import com.numan.runningtracker.db_.repository_.MainRepository
 class MainViewModel @ViewModelInject constructor(
     val mainRepository: MainRepository
 ) : ViewModel() {
+
+    fun insertRun(run: Run) = viewModelScope.launch {
+        mainRepository.insertRun(run)
+    }
 }
