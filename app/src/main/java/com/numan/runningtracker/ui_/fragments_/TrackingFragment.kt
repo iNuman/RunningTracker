@@ -30,6 +30,7 @@ import com.numan.runningtracker.ui_.viewmodels_.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.fragment_tracking.*
 import java.util.*
+import javax.inject.Inject
 import kotlin.math.round
 import com.numan.runningtracker.other_.Constants as Constants
 
@@ -54,7 +55,13 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
 
     private var menu: Menu? = null
 
-    private var weight = 80f
+    /*
+    * We want to use the weight entered by user
+    * and the weight is also primitive data type
+    * so we'll get that
+    * */
+    @set:Inject
+    var weight = 80f
 
     private var currentTimeInMillis = 0L /* how long the run was*/
 
