@@ -51,6 +51,7 @@ class RunFragment : Fragment(R.layout.fragment_run), EasyPermissions.PermissionC
         requestPermission()
         setupRecyclerView()
 
+
         when (viewModel.sortType) {
             SortType.DATE -> spFilter.setSelection(0)
             SortType.DISTANCE -> spFilter.setSelection(1)
@@ -74,6 +75,7 @@ class RunFragment : Fragment(R.layout.fragment_run), EasyPermissions.PermissionC
                 }
             }
         }
+
         viewModel.runs.observe(viewLifecycleOwner, Observer { runAdapter.submitList(it) })
 
         fab.setOnClickListener { findNavController().navigate(R.id.action_runFragment_to_trackingFragment) }
