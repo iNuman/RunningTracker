@@ -1,11 +1,18 @@
 package com.numan.runningtracker.ui_.fragments_
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
 import com.numan.runningtracker.R
+import com.numan.runningtracker.other_.CustomMarkerView
 import com.numan.runningtracker.other_.TrackingUtility
 import com.numan.runningtracker.ui_.viewmodels_.StatisticsViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -29,7 +36,34 @@ class StatisticsFragment : Fragment(R.layout.fragment_statistics) {
         super.onViewCreated(view, savedInstanceState)
 
         subscribeToObservers()
+        setupBarChart()
 
+    }
+
+    private fun setupBarChart() {
+        barChart.xAxis.apply {
+            position = XAxis.XAxisPosition.BOTTOM
+            setDrawLabels(false)
+            axisLineColor = Color.WHITE
+            textColor = Color.WHITE
+            setDrawGridLines(false)
+        }
+
+        barChart.axisLeft.apply {
+            axisLineColor = Color.WHITE
+            textColor = Color.WHITE
+            setDrawGridLines(false)
+        }
+
+        barChart.axisRight.apply {
+            axisLineColor = Color.WHITE
+            textColor = Color.WHITE
+            setDrawGridLines(false)
+        }
+        barChart.apply {
+            description.text = "Avg Speed Over Time"
+            legend.isEnabled = false
+        }
     }
 
     private fun subscribeToObservers() {
@@ -51,7 +85,7 @@ class StatisticsFragment : Fragment(R.layout.fragment_statistics) {
 
         viewModel.totalAvgSpeed.observe(viewLifecycleOwner, Observer {
             it?.let {
-                val avgSpeed = round(it * 10f ) / 10f
+                val avgSpeed = round(it * 10f) / 10f
                 val avgSpeedString = "${avgSpeed}km/h"
                 tvAverageSpeed.text = avgSpeedString
             }
@@ -61,6 +95,26 @@ class StatisticsFragment : Fragment(R.layout.fragment_statistics) {
             it?.let {
                 val totalCaloriesBurned = "${it}kcal"
                 tvTotalCalories.text = totalCaloriesBurned
+            }
+        })
+
+        viewModel.runsSortedBByDate.observe(viewLifecycleOwner, Observer {
+            it?.let {
+
+                /*
+                * X values = BarEntry(i.toFloat()  these are actually indices of our run
+                * Y values = it[i].avgSpeedInKMH
+                * */
+                val allAvgSpeeds = it.indices.map { i -> BarEntry(i.toFloat(), it[i].avgSpeedInKMH) }// means range
+                  val barDataSet = BarDataSet(allAvgSpeeds, "Avg Speed Over Time").apply {
+                      valueTextColor = Color.WHITE
+                      color = ContextCompat.getColor(requireContext(), R.color.colorAccent)
+                  }
+                barChart.data = BarData(barDataSet)
+                barChart.marker = CustomMarkerView(it.reversed(), requireContext(), R.layout.marker_view)
+                barChart.invalidate()
+
+
             }
         })
     }
