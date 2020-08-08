@@ -34,6 +34,8 @@ import javax.inject.Inject
 import kotlin.math.round
 import com.numan.runningtracker.other_.Constants as Constants
 
+const val CANCEL_TRACKING_DIALOG_TAG = "CancelDailog"
+
 /*
 * Whenever we want to inject stuff in Android Components
 * we will Annotate that fragment/Activity with:
@@ -77,6 +79,23 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        /*
+        * Now here savedInstanceState this will contain the
+        * information when we rotate the screen
+        * we'll check the savedInstanceState for null
+        * it'll return true for the first time if isnull
+        * because we don't have anything inside it but
+        * When we rotate the screen it won't be null again
+        * So,
+        * */
+        if (savedInstanceState != null) {
+            val cancelTrackingDialog = parentFragmentManager.findFragmentByTag(
+                CANCEL_TRACKING_DIALOG_TAG
+            ) as CancelTrackingDialog?
+            cancelTrackingDialog?.setYesListener { stopRun() }
+        }
+
+
         /*
         * And Now we'll get map fragment lifeCycle methods here
         * */
@@ -162,22 +181,19 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
     }
 
     private fun showCancelTrackingDialog() {
-        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.AlertDialogTheme)
-            .setTitle("Cancel The Run")
-            .setMessage("Are you sure to cancel the current run and delete all its' data?")
-            .setIcon(R.drawable.ic_delete)
-            .setPositiveButton("Yes") { _, _ ->
+        /*
+        * To handle screen rotation for Dialog
+        * as It was not surviving screen rotations
+        * */
+        CancelTrackingDialog().apply {
+            setYesListener {
                 stopRun()
-
             }
-            .setNegativeButton("No") { dialogInterface, _ ->
-                dialogInterface.cancel()
-            }
-            .create()
-        dialog.show()
+        }.show(parentFragmentManager, CANCEL_TRACKING_DIALOG_TAG)
     }
 
     private fun stopRun() {
+        tvTimer.text = "00:00:00:00"
         sendCommandToService(ACTION_STOP_SERVICE)
         findNavController().navigate(R.id.action_trackingFragment_to_runFragment)
     }
@@ -185,10 +201,10 @@ class TrackingFragment : Fragment(R.layout.fragment_tracking) {
     private fun updateTracking(isTracking: Boolean) {
 
         this.isTracking = isTracking
-        if (!isTracking) {
+        if (!isTracking && currentTimeInMillis > 0L) {
             btnToggleRun.text = "Start"
             btnFinishRun.visibility = View.VISIBLE
-        } else {
+        } else if (isTracking) {
             btnToggleRun.text = "Stop"
             menu?.getItem(0)?.isVisible = true
             btnFinishRun.visibility = View.GONE

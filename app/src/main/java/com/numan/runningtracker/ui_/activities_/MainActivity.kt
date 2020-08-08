@@ -29,6 +29,11 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(toolbar)
         bottomNavigationView.setupWithNavController(navHostFragment.findNavController())
+        /*
+        * It'll override the re selection of item in bottom navigation view
+        * and will avoid reloading of fragment by pressing item again
+        * */
+        bottomNavigationView.setOnNavigationItemReselectedListener { /* No Operation */ }
 
         /*
         * Since we only want to show our bottom navigation in statistics, Run and Setting Fragment
