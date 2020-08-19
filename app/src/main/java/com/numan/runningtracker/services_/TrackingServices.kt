@@ -21,6 +21,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.model.LatLng
 import com.numan.runningtracker.R
 import com.numan.runningtracker.extensions_.log
+import com.numan.runningtracker.other_.Constants
 import com.numan.runningtracker.other_.Constants.ACTION_PAUSE_SERVICE
 import com.numan.runningtracker.other_.Constants.ACTION_START_OR_RESUME_SERVICE
 import com.numan.runningtracker.other_.Constants.NOTIFICATION_ID
@@ -32,7 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.numan.runningtracker.other_.Constants as Constants
 
 typealias  Polyline = MutableList<LatLng>
 typealias Polylines = MutableList<Polyline>

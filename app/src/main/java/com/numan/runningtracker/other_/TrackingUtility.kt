@@ -6,7 +6,6 @@ import android.location.Location
 import android.os.Build
 import com.numan.runningtracker.services_.Polyline
 import pub.devrel.easypermissions.EasyPermissions
-import java.sql.Time
 import java.util.concurrent.TimeUnit
 
 object TrackingUtility {
